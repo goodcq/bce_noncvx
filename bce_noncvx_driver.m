@@ -60,8 +60,8 @@ end
 fprintf(1, 'inital convolution l2-error (rel) = %e\n', norm(y-y0,'fro')/norm(y,'fro'));
 
 opts = {};
-opts.maxIter = 5000;
-opts.optTol = 1e-2;
+opts.maxIter = 10000;
+opts.optTol = 1e-3;
 opts.verbose = 1;
 
 x_est = L1General2_PSSgb(objective, x0, lambda, opts);

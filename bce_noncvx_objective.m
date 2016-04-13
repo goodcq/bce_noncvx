@@ -27,26 +27,34 @@ f = 1/2*norm(y-Ahm, 'fro')^2;
 % gradients
 resid = Ahm-y;
 
-% compute action of adjoint
-hc = resid(1:lh,:); hr = resid(lh:lh+lm-1,:); % 1st col, last row of Hankel matrix
-tc = resid(lm:lh+lm-1,:); tr = resid(lm:-1:1,:);  % 1st col, 1st row of corresponding Toeplitz matrix
+% compute action of adjoint (Hankel derivation)
+%hc = resid(1:lh,:); hr = resid(lh:lh+lm-1,:); % 1st col, last row of Hankel matrix
+%tc = resid(lm:lh+lm-1,:); tr = resid(lm:-1:1,:);  % 1st col, 1st row of corresponding Toeplitz matrix
+%
+%c = [tc; tr(end:-1:2,:)]; % 1st col of Toeplitz T embedded in circulant matrix
+%
+%Fc = fft(c); % DFT over columns
+%Fma = fft([m(end:-1:1); zeros(lh-1,1)]); % DFT of extended m
+%Fha = fft([h; zeros(lm-1,nc)]);          % DFT of extended h
+%
+%dfh = real(ifft(bsxfun(@times, Fc, Fma))); dfh = dfh(1:lh,:);
+%dfm = sum(real(ifft(conj(Fc).*Fha)), 2);dfm = dfm(lm:-1:1,:);
 
-c = [tc; tr(end:-1:2,:)]; % 1st col of Toeplitz T embedded in circulant matrix
-
-Fc = fft(c); % DFT over columns
-Fma = fft([m(end:-1:1); zeros(lh-1,1)]); % DFT of extended m
-Fha = fft([h; zeros(lm-1,nc)]);          % DFT of extended h
-
-dfh = real(ifft(bsxfun(@times, Fc, Fma))); dfh = dfh(1:lh,:);
-dfm = sum(real(ifft(conj(Fc).*Fha)), 2);dfm = dfm(lm:-1:1,:);
-
-df = [dfh(:); dfm];
+% compute action of adjoint (matched filter derivation)
+dfh = zeros(size(h));
+dfm = zeros(size(m));
+for i=1:nc
+   dfh(:,i) = conv(resid(:,i), conj(m(end:-1:1)), 'valid');
+   dfm = dfm + conv(resid(:,i), conj(h(end:-1:1,i)), 'valid');
+end
 
 % add in huber(D*h_i) \approx ||h_i||_TV term
 for i=1:nc
    f = f + lambda_h_TV*huber(D(h(:,i)), huber_d)/huber_d;
    dfh(:,i) = dfh(:,i) + lambda_h_TV*DT(huber_grad(D(h(:,i)), huber_d)/huber_d);
 end
+
+df = [dfh(:); dfm];
 
 end
 
